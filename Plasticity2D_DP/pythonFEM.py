@@ -28,6 +28,7 @@ import matplotlib.patches as patch
 import matplotlib.cm as cm
 import matplotlib.collections as col
 import os
+from bgem.gmsh.gmsh_io import GmshIO
 
 
 ##############
@@ -58,6 +59,52 @@ class LagrangeElementType(enum.Enum):
     P2 = 2
     Q1 = 3
     Q2 = 4
+
+
+def load_mesh(file_name):
+    gio = GmshIO(file_name)
+
+    # nodes
+    node_map = {}
+    c_x = []
+    c_y = []
+    for i, (node_tag, (x, y, z)) in enumerate(gio.nodes.items()):
+        node_map[node_tag] = i
+        c_x.append(x)
+        c_y.append(y)
+
+    # the required array of coordinates, size(coord)=(2,n_n)
+    coord = np.array([c_x, c_y])
+
+    # elements
+    n_0 = []
+    n_1 = []
+    n_2 = []
+    for type, tags, node_tags in gio.elements.values():
+        if type == 2:
+            n_0.append(node_map[node_tags[0]])
+            n_1.append(node_map[node_tags[1]])
+            n_2.append(node_map[node_tags[2]])
+
+    # the array elem, size(elem)=(3,n_e)
+    elem = np.array([n_0, n_1, n_2])
+
+    # the array "surf"
+    surf = np.zeros((2, 0))
+
+    # Boundary conditions
+
+    # array indicating the nodes with non-homogen. Dirichlet boundary cond.
+    dirichlet = np.zeros(coord.shape)
+    #dirichlet[1, np.logical_and((coord[1, :] == size_xy), (coord[0, :] <= 1.0001))] = 1
+
+    # logical array indicating the nodes with the Dirichlet boundary cond.
+    Q = np.full(coord.shape, False)
+    # Q = coord > 0
+    # Q[1, np.logical_and((coord[1, :] == size_xy), (coord[0, :] <= 1.0001))] = 0
+    # Q[0, (coord[0, :] == size_xy)] = 0
+
+    return {'coordinates': coord, 'elements': elem, 'surface': surf, 'dirichlet_nodes': dirichlet, 'Q': Q}
 
 
 def get_nodes_1(level: int,
@@ -942,7 +989,8 @@ def elasticity_fem(element_type: LagrangeElementType = LagrangeElementType.P1,
     ################
     # Generate mesh
     ################
-    mesh = assemble_mesh(level, element_type, size_xy)
+    #mesh = assemble_mesh(level, element_type, size_xy)
+    mesh = load_mesh("/home/radek/work/ElastoPlasticity/solver_00_sample_000/tunnel_mesh_cut_healed.msh")
     q_nd = mesh['dirichlet_nodes'][1, :] > 0
 
     # Data from the reference element
