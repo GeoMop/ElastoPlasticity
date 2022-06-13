@@ -100,6 +100,9 @@ def load_mesh(file_name):
 
     # logical array indicating the nodes with the Dirichlet boundary cond.
     Q = np.full(coord.shape, False)
+    Q[:, 0] = True
+    Q[:, 1] = True
+    Q[:, 2] = True
     # Q = coord > 0
     # Q[1, np.logical_and((coord[1, :] == size_xy), (coord[0, :] <= 1.0001))] = 0
     # Q[0, (coord[0, :] == size_xy)] = 0
@@ -990,7 +993,7 @@ def elasticity_fem(element_type: LagrangeElementType = LagrangeElementType.P1,
     # Generate mesh
     ################
     #mesh = assemble_mesh(level, element_type, size_xy)
-    mesh = load_mesh("/home/radek/work/ElastoPlasticity/solver_00_sample_000/tunnel_mesh_cut_healed.msh")
+    mesh = load_mesh(os.path.join(os.path.dirname(__file__), "../tests/tunnel_mesh_cut_healed.msh"))
     q_nd = mesh['dirichlet_nodes'][1, :] > 0
 
     # Data from the reference element
